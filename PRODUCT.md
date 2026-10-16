@@ -14,7 +14,7 @@ Windows insertion leaves the clipboard alone. Only deliberately selecting a rece
 
 ## Design brief
 
-Diane requested the same neutral gray/white/black and restrained blue/teal treatment as Silent Type. Retain the compact tray and Recent dictations interaction. Use native system type, clear states and keyboard access. No personal brand colors or decorative product page. This is a scoped restyle of an existing utility, not a new product flow.
+Diane approved the shared public-edition theme with Silent Type and Snip: black, white and neutral gray, gold shortcut chips with white labels, and light-gold links and chip edges. The tray shows gray idle, gold recording and light-gold processing with a dark microphone glyph. White labels on gold retain the approved brand contrast exception. Preserve native system type, popup geometry and recovery interactions. Installed copies and the headless macOS implementation remain outside this Windows theme change.
 
 ## Release boundaries
 

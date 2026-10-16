@@ -9,7 +9,7 @@ import tkinter as tk
 import tkinter.font as tkfont
 from ctypes import wintypes
 
-from theme import ACCENT, EDGE, HOVER, MUTED, ROW
+from theme import ACCENT, ACTION, ACTION_TEXT, EDGE, HOVER, MUTED, ROW
 from theme import SURFACE as INK
 from theme import TEXT as PAPER
 
@@ -226,15 +226,16 @@ class Recents:
                     cx + chip,
                     cy + chip // 2,
                     chip // 2,
-                    fill=ACCENT,
-                    outline="",
+                    fill=ACTION,
+                    outline=ACCENT,
+                    width=1,
                     tags=tag,
                 )
                 c.create_text(
                     cx + chip // 2,
                     cy - int(1 * s),
                     text=chip_char,
-                    fill=INK,
+                    fill=ACTION_TEXT,
                     font=(disp_family, -int(12 * s), "bold"),
                     tags=tag,
                 )

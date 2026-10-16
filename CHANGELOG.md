@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.1 — 2026-10-16
+
+- Apply the shared gold action and light-gold accent palette on neutral gray surfaces.
+- Separate action, selection and focus colors; preserve native controls and workflows.
+- Refresh design documentation and release screenshots. Dependencies and installation behavior are unchanged.
+
+
 ## 0.1.0 · October 15, 2026
 
 First personal-profile public source release, based on the previously prepared member edition.

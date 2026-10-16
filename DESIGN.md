@@ -2,17 +2,19 @@
 name: Dictate
 description: Native Windows tray utility with a compact transcript recovery popup.
 colors:
-  surface: "#181B1E"
-  row: "#24292E"
-  hover: "#323A41"
-  edge: "#4B555E"
-  text: "#F5F7F8"
-  muted: "#B3BDC5"
-  accent: "#90D5CF"
-  idle: "#66717A"
-  recording: "#0F766E"
-  processing: "#2563A6"
-  tray-glyph: "#FEFCFD"
+  surface: "#171717"
+  row: "#252525"
+  hover: "#333333"
+  edge: "#4B4B4B"
+  text: "#F5F5F5"
+  muted: "#B8B8B8"
+  accent: "#E8DBBE"
+  action: "#AD8326"
+  action-text: "#FFFFFF"
+  idle: "#777777"
+  recording: "#AD8326"
+  processing: "#E8DBBE"
+  tray-glyph: "#F5F5F5"
 typography:
   heading:
     fontFamily: "Segoe UI Variable Display, Segoe UI"
@@ -66,8 +68,8 @@ components:
     rounded: "{rounded.row}"
     height: "44px"
   shortcut:
-    backgroundColor: "{colors.accent}"
-    textColor: "{colors.surface}"
+    backgroundColor: "{colors.action}"
+    textColor: "{colors.action-text}"
     typography: "{typography.shortcut}"
     rounded: "{rounded.shortcut}"
     size: "24px"
@@ -77,15 +79,17 @@ components:
 
 ## Overview
 
-Neutral dark gray surfaces, white text and restrained teal and blue accents. The designed Windows surface is the Recent dictations popup and its tray icon. The separate macOS implementation is headless; this document does not prescribe a macOS screen.
+Neutral dark gray surfaces, white text and SRC gold shortcut chips share the approved theme with Silent Type and Snip. The designed Windows surface is the Recent dictations popup and its tray icon. The separate macOS implementation is headless; this document does not prescribe a macOS screen.
 
-Extracted from `theme.py`, `recents.py`, `dictate.py` and the normal, empty, ten-entry and scaled popup captures in `.impeccable/review/`. `PRODUCT.md` records the approved direction.
+The Windows appearance is owned by theme.py, recents.py and dictate.py. PRODUCT.md records the approved direction. Existing geometry and recovery behavior remain intact.
 
 ## Colors
 
-The accent identifies keyboard shortcuts and the full-log action. Surface, row and hover distinguish the popup from its interactive rows; edge outlines the popup. Text is used for transcripts and the heading, muted for instructions and the empty state.
+Action gold fills keyboard shortcut chips, with white labels and light-gold edges. The light-gold accent identifies the full-log action. Surface, row and hover distinguish the popup from its interactive rows; edge outlines the popup. Text is used for transcripts and the heading, muted for instructions and the empty state.
 
-Tray states use idle gray, recording teal and processing blue, with the tray-glyph color for the microphone. Tooltip text names each state. Windows renders the context menu, scrollbar and notifications using its own controls.
+Tray states use idle gray, recording gold and processing light gold. The microphone uses tray-glyph white on idle and recording, and surface charcoal on processing. Tooltip text names each state. Windows renders the context menu, scrollbar and notifications using its own controls.
+
+White labels on solid gold retain the approved brand exception. This pairing does not establish ordinary small-text contrast compliance. This popup changes the neutral row fill on hover; it has no primary-button hover state.
 
 ## Typography
 
@@ -107,7 +111,7 @@ No custom shadow or animated transition. A thin outline, darker background and l
 
 ## Shapes
 
-Rounded shapes are Tk smooth polygons with the frontmatter radius parameters, not CSS rounded rectangles. Shortcut chips are small rounded squares. The tray graphic is a transparent 64 × 64 image containing a colored circle and white microphone. The transparent window key is a rendering implementation detail, not a palette color.
+Rounded shapes are Tk smooth polygons with the frontmatter radius parameters, not CSS rounded rectangles. Shortcut chips are small rounded squares. The tray graphic is a transparent 64 × 64 image containing a state-colored circle and a contrasting microphone. The transparent window key is a rendering implementation detail, not a palette color.
 
 ## Components
 
@@ -117,12 +121,13 @@ Rounded shapes are Tk smooth polygons with the frontmatter radius parameters, no
 - **Popup:** Escape or loss of focus closes it. Opening and dismissal do not copy text. There is no implemented Tab-driven row focus indicator or screen-reader semantics for the drawn canvas items; keyboard shortcuts are not a claim of full accessibility.
 - **Tray:** colored microphone circle and state tooltip; native context menu. No bespoke settings form or navigation screen exists.
 
-The sidecar contains visual HTML previews of the native components. Those previews are illustrative; Tk source and native captures determine actual geometry and behavior.
+The sidecar describes the native components. Tk source and native captures determine their geometry and behavior.
 
 ## Do's and Don'ts
 
 - Do retain the neutral palette, system type and restrained state colors.
 - Do keep every transcript and the full-log action reachable when the popup exceeds the work area.
 - Do preserve full transcript text behind shortened previews.
-- Don't add personal brand colors, decorative marketing imagery or an unrelated product flow.
+- Do preserve gold chips, light-gold links and neutral hovered rows through redraws.
+- Don't add decorative marketing imagery or an unrelated product flow.
 - Don't treat screenshots, keyboard shortcuts or system-DPI tests as full accessibility or mixed-DPI hardware certification.

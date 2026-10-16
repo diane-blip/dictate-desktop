@@ -12,7 +12,7 @@ The separate **[macOS port](macos/README.md) is by [Diane Green](https://github.
 
 Requires **Windows 10/11 x64, 64-bit Python 3.12, internet access and your own Groq or OpenAI API key**. Optional cleanup uses an Anthropic API key. Provider charges and limits apply.
 
-1. Download **Dictate-0.1.0-source.zip** from [Releases](https://github.com/diane-blip/dictate-desktop/releases/tag/v0.1.0). Extract it to a permanent folder you control.
+1. Download **Dictate-0.1.1-source.zip** from [Releases](https://github.com/diane-blip/dictate-desktop/releases/tag/v0.1.1). Extract it to a permanent folder you control.
 2. Install [Python 3.12](https://www.python.org/downloads/windows/) with its `py` launcher if needed.
 3. Open PowerShell in the extracted folder:
 
@@ -40,7 +40,7 @@ Quit any other Dictate installation. The single-instance guard prevents duplicat
 3. Speak a short sentence, then release either key and let both keys up.
 4. Keep that window focused until the text arrives. Review it before sending.
 
-The tray icon is **gray when idle, teal while recording, blue while processing**. Its tooltip also names the state. Left-click for **Recent dictations**. Click a row or press its number to copy the complete transcript. Press **L** to open the full log; **Esc** closes the popup. Opening or dismissing it does not copy anything.
+The tray icon is **gray when idle, gold while recording, light gold while processing**. Its tooltip also names the state. Left-click for **Recent dictations**. Click a row or press its number to copy the complete transcript. Press **L** to open the full log; **Esc** closes the popup. Opening or dismissing it does not copy anything.
 
 For later launches, double-click `start-dictate.vbs`. Optional Desktop and login-startup shortcuts:
 

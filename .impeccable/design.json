@@ -1,12 +1,12 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-16T00:43:17.639Z",
+  "generatedAt": "2026-10-16T16:55:11.397509+00:00",
   "title": "Design System: Dictate",
   "extensions": {
     "colorMeta": {
       "accent": {
         "role": "primary",
-        "displayName": "Shortcut and log teal"
+        "displayName": "Light-gold log link and chip edge"
       },
       "surface": {
         "role": "neutral",
@@ -46,7 +46,15 @@
       },
       "tray-glyph": {
         "role": "neutral",
-        "displayName": "Microphone glyph"
+        "displayName": "Idle and recording microphone"
+      },
+      "action": {
+        "role": "primary",
+        "displayName": "SRC gold shortcut"
+      },
+      "action-text": {
+        "role": "neutral",
+        "displayName": "White action label"
       }
     },
     "typographyMeta": {
@@ -69,51 +77,48 @@
     },
     "shadows": [],
     "motion": [],
-    "breakpoints": []
+    "breakpoints": [],
+    "contrastException": "White labels on solid gold retain the approved brand exception. This pairing does not establish ordinary small-text contrast compliance.",
+    "documentationEvidence": "Refreshed against the implemented gold theme source and approved native gold previews. This is documentation of the approved palette and retained behavior, not accessibility certification.",
+    "nativeConventions": {
+      "sourceFiles": [
+        "theme.py",
+        "recents.py",
+        "dictate.py"
+      ],
+      "processingGlyph": "Processing uses the surface token for its microphone glyph.",
+      "previewPolicy": "Native components are described without HTML/CSS substitutes.",
+      "scope": "Windows theme only; the headless macOS implementation is unchanged."
+    }
   },
   "components": [
     {
       "name": "Recovery row",
       "kind": "custom",
       "refersTo": "recovery-row",
-      "description": "Visual preview of a native canvas row; HTML does not implement clipboard actions or physical-key handling.",
-      "html": "<div class=\"ds-row\"><span class=\"ds-chip\">1</span><span class=\"ds-label\">Fictional transcript for the visual preview.</span></div>",
-      "css": ".ds-row{display:flex;align-items:center;gap:12px;height:44px;padding:0 10px;background:#24292E;border-radius:11px;color:#F5F7F8;font:16px 'Segoe UI Variable Text','Segoe UI',sans-serif}.ds-row:hover{background:#323A41;cursor:pointer}.ds-chip{display:flex;align-items:center;justify-content:center;flex:0 0 24px;height:24px;background:#90D5CF;color:#181B1E;border-radius:12px;font:700 12px 'Segoe UI Variable Display','Segoe UI',sans-serif}.ds-label{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}"
+      "description": "Native canvas row with a gold numbered chip, white numeral and light-gold edge. Neutral row hover; matching press and release or a physical digit copies the full transcript."
     },
     {
       "name": "Full-log row",
       "kind": "custom",
       "refersTo": "log-row",
-      "description": "Visual preview of the native log action. Native click or physical L opens the log.",
-      "html": "<div class=\"ds-row ds-log\"><span class=\"ds-chip\">L</span><span class=\"ds-label\">Open the full log</span></div>",
-      "css": ".ds-row{display:flex;align-items:center;gap:12px;height:44px;padding:0 10px;background:#24292E;border-radius:11px;color:#F5F7F8;font:16px 'Segoe UI Variable Text','Segoe UI',sans-serif}.ds-row:hover{background:#323A41;cursor:pointer}.ds-chip{display:flex;align-items:center;justify-content:center;flex:0 0 24px;height:24px;background:#90D5CF;color:#181B1E;border-radius:12px;font:700 12px 'Segoe UI Variable Display','Segoe UI',sans-serif}.ds-label{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.ds-log{color:#90D5CF}"
+      "description": "Light-gold link with a gold L chip. Click or physical L opens the full log."
     },
     {
       "name": "Empty row",
       "kind": "custom",
       "refersTo": "empty-row",
-      "description": "Noninteractive native empty-state appearance.",
-      "html": "<div class=\"ds-empty\">Nothing dictated yet.</div>",
-      "css": ".ds-empty{display:flex;align-items:center;height:44px;padding-left:46px;background:#24292E;border-radius:11px;color:#B3BDC5;font:16px 'Segoe UI Variable Text','Segoe UI',sans-serif}"
-    },
-    {
-      "name": "Popup heading",
-      "kind": "custom",
-      "description": "Native heading and instructions at baseline size.",
-      "html": "<div class=\"ds-header\"><div class=\"ds-title\">Recent dictations</div><div class=\"ds-help\">Click or press a number to copy. Esc closes.</div></div>",
-      "css": ".ds-header{padding:16px 18px;background:#181B1E}.ds-title{color:#F5F7F8;font:700 18px 'Segoe UI Variable Display','Segoe UI',sans-serif}.ds-help{margin-top:5px;color:#B3BDC5;font:13px 'Segoe UI Variable Text','Segoe UI',sans-serif}"
+      "description": "Muted noninteractive message with the transcript alignment."
     },
     {
       "name": "Tray states",
       "kind": "custom",
-      "description": "SVG previews of the 64-pixel Pillow icon source. Windows controls the displayed tray size; state tooltips accompany the icon.",
-      "html": "<div class=\"ds-tray\"><svg width=\"64\" height=\"64\" viewBox=\"0 0 64 64\" role=\"img\" aria-label=\"Idle\"><circle cx=\"32\" cy=\"32\" r=\"24\" fill=\"#66717A\"/><rect x=\"26\" y=\"18\" width=\"12\" height=\"20\" rx=\"6\" fill=\"#FEFCFD\"/><path d=\"M32 40V48\" stroke=\"#FEFCFD\" stroke-width=\"4\"/></svg><svg width=\"64\" height=\"64\" viewBox=\"0 0 64 64\" role=\"img\" aria-label=\"Recording\"><circle cx=\"32\" cy=\"32\" r=\"24\" fill=\"#0F766E\"/><rect x=\"26\" y=\"18\" width=\"12\" height=\"20\" rx=\"6\" fill=\"#FEFCFD\"/><path d=\"M32 40V48\" stroke=\"#FEFCFD\" stroke-width=\"4\"/></svg><svg width=\"64\" height=\"64\" viewBox=\"0 0 64 64\" role=\"img\" aria-label=\"Processing\"><circle cx=\"32\" cy=\"32\" r=\"24\" fill=\"#2563A6\"/><rect x=\"26\" y=\"18\" width=\"12\" height=\"20\" rx=\"6\" fill=\"#FEFCFD\"/><path d=\"M32 40V48\" stroke=\"#FEFCFD\" stroke-width=\"4\"/></svg></div>",
-      "css": ".ds-tray{display:flex;gap:12px}"
+      "description": "Gray idle and gold recording use a white microphone. Light-gold processing uses a charcoal microphone. Tooltips name the state."
     }
   ],
   "narrative": {
     "northStar": "",
-    "overview": "Neutral dark gray surfaces, white text and restrained teal and blue accents. The designed Windows surface is the Recent dictations popup and its tray icon. The separate macOS implementation is headless; this document does not prescribe a macOS screen.",
+    "overview": "Dark neutral popup with gold shortcut chips, white labels and light-gold links. Native Windows recovery behavior is retained; the macOS port is headless and unchanged.",
     "keyCharacteristics": [],
     "rules": [],
     "dos": [
@@ -122,7 +127,7 @@
       "Do preserve full transcript text behind shortened previews."
     ],
     "donts": [
-      "Don't add personal brand colors, decorative marketing imagery or an unrelated product flow.",
+      "Don't add decorative marketing imagery or an unrelated product flow.",
       "Don't treat screenshots, keyboard shortcuts or system-DPI tests as full accessibility or mixed-DPI hardware certification."
     ]
   }

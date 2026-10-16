@@ -76,8 +76,9 @@ def _icon_image(color: str) -> Image.Image:
     img = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
     d.ellipse((8, 8, 56, 56), fill=color)
-    d.rounded_rectangle((26, 18, 38, 38), radius=6, fill="#FEFCFD")  # mic body
-    d.line((32, 40, 32, 48), fill="#FEFCFD", width=4)  # mic stem
+    glyph = theme.SURFACE if color == COLOR_PROCESSING else theme.TEXT
+    d.rounded_rectangle((26, 18, 38, 38), radius=6, fill=glyph)  # mic body
+    d.line((32, 40, 32, 48), fill=glyph, width=4)  # mic stem
     return img
 
 

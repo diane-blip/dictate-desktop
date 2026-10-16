@@ -1,5 +1,16 @@
 # Release verification
 
+## 0.1.1 · October 16, 2026
+
+45 default Windows tests and all five controlled desktop integration checks passed. Both platform dependency locks passed advisory audits. The macOS source and Diane Green attribution are unchanged; hosted checks cover that port separately.
+
+The implemented gold theme was compared with the approved native previews at normal and constrained sizes, including populated, empty, hover, focus and error states where applicable. Actions are gold with white labels; links and dark-surface focus are light gold; surfaces and selections are neutral gray. White on gold is an approved visual exception, not a claim of AA small-text contrast. Full screen-reader, high-contrast and mixed-DPI support remain unverified.
+
+Release assets are built from the exact commit, with hosted checks, exported-tree/history secret scans and an unauthenticated SHA-256 download check recorded in the versioned release notes. Existing personal installations are not modified.
+
+## Previous release evidence
+
+
 Dictate 0.1.0, October 15, 2026. Windows x64 / Python 3.12 is the primary tested desktop target. macOS keeps its separate contributed implementation.
 
 ## Windows evidence
