@@ -1,9 +1,9 @@
 # Voice snippets
 
-Say the phrase on the left, get the text on the right. One row per snippet; the file is re-read on every dictation, so edits apply immediately. The cleanup pass matches phrases semantically ("my brand pink color" still matches "brand pink"), and there's exact-phrase matching as a fallback when the cleanup pass is off.
+Say the phrase on the left, get the text on the right. The file is read on every dictation. Local matching replaces exact phrases; optional AI cleanup can also match variations. Copy these examples into your own `*.local.md` file and set its path in `config.local.toml`.
 
 | Say | Insert |
 |------------|---------|
-| brand pink | #F49CBB |
+| accent color | #0F766E |
 | my email | you@example.com |
 | my site | https://example.com |

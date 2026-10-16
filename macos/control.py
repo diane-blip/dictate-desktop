@@ -3,6 +3,7 @@
 import os
 import signal
 import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -14,14 +15,26 @@ def owns_process(pid: int) -> bool:
     if pid <= 1:
         return False
     result = subprocess.run(
-        ["/bin/ps", "-p", str(pid), "-o", "command="],
+        ["/bin/ps", "-ww", "-p", str(pid), "-o", "command="],
         capture_output=True,
         text=True,
         check=False,
         timeout=3,
     )
-    expected = f"{APP_DIR / '.venv/bin/python'} {APP_DIR / 'dictate.py'}"
-    return result.returncode == 0 and result.stdout.strip() == expected
+    if result.returncode != 0:
+        return False
+    command = result.stdout.strip()
+    suffix = f" {APP_DIR / 'dictate.py'}"
+    if not command.endswith(suffix):
+        return False
+    interpreter = Path(command.removesuffix(suffix))
+    # python.org framework builds re-exec their bundled Python.app binary.
+    # Keep the script path exact; never accept a filename-only process match.
+    allowed = {
+        (APP_DIR / ".venv/bin/python").resolve(),
+        (Path(sys.base_prefix) / "Resources/Python.app/Contents/MacOS/Python").resolve(),
+    }
+    return interpreter.resolve() in allowed
 
 
 def stop() -> None:

@@ -157,6 +157,11 @@ class ControlTests(unittest.TestCase):
         expected = f"{control.APP_DIR / '.venv/bin/python'} {control.APP_DIR / 'dictate.py'}"
         for command, result in (
             (expected, True),
+            (
+                f"{Path(sys.base_prefix) / 'Resources/Python.app/Contents/MacOS/Python'} "
+                f"{control.APP_DIR / 'dictate.py'}",
+                True,
+            ),
             (expected + " other", False),
             ("python /other/dictate.py", False),
         ):
