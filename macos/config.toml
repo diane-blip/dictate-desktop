@@ -1,0 +1,66 @@
+# Dictate configuration (macOS). The app reads this at startup; use the menu
+# bar "Reload config" after editing.
+
+# Two keys held TOGETHER trigger dictation (recording starts only once BOTH are
+# down; releasing EITHER stops it). A lone modifier isn't safe by itself, but a
+# specific PAIR held together is, since no everyday macOS shortcut uses exactly
+# that pair. Right Command + Right Option is the default: easy to hold with one
+# hand, and macOS reserves nothing for it.
+#
+# Valid names: "right cmd", "left cmd", "right option", "left option",
+# "right ctrl", "left ctrl", "right shift", "left shift", "fn".
+hotkey_key1 = "right cmd"
+hotkey_key2 = "right option"
+
+# Holds shorter than this are treated as accidental taps and discarded.
+min_hold_ms = 300
+
+# Recording length cap (stuck-key safety). Hitting it STOPS the recording and
+# processes everything captured so far. Nothing is ever discarded for length,
+# in time or in words. 600s at 16kHz mono is ~19MB WAV, under Groq's 25MB cap.
+max_seconds = 600
+
+# Soft boop when recording starts/stops. Volume 0.0 to 1.0.
+sounds = true
+sound_volume = 0.2
+
+# How the text is inserted at the cursor. macOS uses cmd+v almost everywhere.
+# Some terminals need cmd+shift+v — change it here, or paste manually from the
+# menu bar (every dictation is one click away under the icon).
+paste_combo = "cmd+v"
+
+# With restore_clipboard = true, whatever you had copied before dictating is put
+# back on the clipboard after the text is inserted, so dictating never clobbers
+# a pending paste. (Text only: a copied image or file can't be restored, so
+# those leave the dictated text on the clipboard instead.)
+restore_clipboard = true
+
+[audio]
+# Optional partial device name, such as "Shure MV7+". Leave blank to prefer
+# the current macOS default. Dictate verifies the endpoint is delivering audio
+# on every hold and automatically tries the other inputs if it is dead.
+preferred_input = ""
+
+[stt]
+provider = "groq"                      # "groq" or "openai"
+groq_model = "whisper-large-v3-turbo"
+openai_model = "whisper-1"
+language = "en"                        # empty string = auto-detect
+
+[cleanup]
+enabled = true
+provider = "groq"                      # "groq" or "openai"
+groq_model = "llama-3.3-70b-versatile"
+openai_model = "gpt-4o-mini"
+timeout_seconds = 5.0
+
+[snippets]
+# Your say-to-insert phrase table. Relative to this folder; point it anywhere
+# (e.g. into your Obsidian vault) if you keep notes elsewhere.
+path = "snippets.md"
+
+[log]
+# Running log of everything dictated (markdown, appended after each insertion).
+# Gitignored by default - it will contain everything you say.
+enabled = true
+path = "dictation-log.md"

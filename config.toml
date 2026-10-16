@@ -1,0 +1,33 @@
+# Shipped defaults. Put overrides in config.local.toml to keep updates clean.
+# Hold both keys, wait for the cue, speak, then release. Keys are not suppressed.
+hotkey_key1 = "left ctrl"
+hotkey_key2 = "left windows"
+min_hold_ms = 300
+# Auto-stop AND transcribe. 600s of 16kHz mono PCM is about 19.2MB.
+max_seconds = 600
+sounds = true
+sound_volume = 0.2
+
+[audio]
+# Partial input-device name; empty prefers the current Windows default.
+# If it delivers no frames, other available inputs are tried.
+preferred_input = ""
+
+[stt]
+provider = "groq"
+groq_model = "whisper-large-v3-turbo"
+openai_model = "whisper-1"
+language = "en" # empty = automatic language detection
+
+[cleanup]
+enabled = true # optional; no Anthropic key means raw transcript + local snippets
+model = "claude-haiku-5-5"
+timeout_seconds = 5.0
+
+[snippets]
+path = "snippets.md"
+
+[log]
+# Plaintext recovery saved BEFORE insertion. Disable for in-memory Recents only.
+enabled = true
+path = "dictation-log.md"
