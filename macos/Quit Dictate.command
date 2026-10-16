@@ -1,3 +1,4 @@
-#!/bin/bash
-pkill -f dictate.py && echo "Dictate stopped." || echo "Dictate was not running."
-echo "You can close this window."
+#!/usr/bin/env bash
+set -euo pipefail
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+exec "$DIR/.venv/bin/python" "$DIR/control.py"

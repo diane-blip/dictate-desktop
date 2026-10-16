@@ -4,7 +4,7 @@ The snippet file is a Markdown table:
 
     | Say            | Insert    |
     |----------------|-----------|
-    | brand pink     | #F49CBB   |
+    | accent color     | #0F766E   |
 """
 
 import re

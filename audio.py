@@ -9,6 +9,15 @@ import sounddevice as sd
 
 SAMPLE_RATE = 16000
 STREAM_READY_TIMEOUT = 0.75
+MAX_SAMPLES = SAMPLE_RATE * 600
+
+
+class RecordingError(RuntimeError):
+    """A capture was incomplete; retain its WAV rather than transcribing it."""
+
+    def __init__(self, message: str, wav_bytes: bytes):
+        super().__init__(message)
+        self.wav_bytes = wav_bytes
 
 
 class Recorder:
@@ -18,6 +27,8 @@ class Recorder:
         self._frames: list[np.ndarray] = []
         self._stream: sd.InputStream | None = None
         self._first_frame = threading.Event()
+        self._samples = 0
+        self._capture_error = ""
 
     @staticmethod
     def _resolve_preferred_device(preferred_device: str | None) -> int | None:
@@ -102,6 +113,8 @@ class Recorder:
 
     def _open_candidate(self, device: int | None) -> bool:
         self._frames = []
+        self._samples = 0
+        self._capture_error = ""
         self._first_frame.clear()
         self._stream = sd.InputStream(
             samplerate=SAMPLE_RATE,
@@ -123,12 +136,23 @@ class Recorder:
                 stream.close()
 
     def _on_audio(self, indata, frames, time_info, status) -> None:
-        self._frames.append(indata.copy())
+        if status:
+            self._capture_error = "The microphone dropped audio; recording saved for review."
+        remaining = MAX_SAMPLES - self._samples
+        if len(indata) > remaining:
+            self._capture_error = "The recording reached its memory limit; audio saved for review."
+        if remaining > 0:
+            block = indata[:remaining].copy()
+            self._frames.append(block)
+            self._samples += len(block)
         self._first_frame.set()
 
     def stop(self) -> tuple[bytes, float]:
         """Return WAV bytes and duration. Raise if the selected input went dead."""
-        self._close_stream()
+        try:
+            self._close_stream()
+        except Exception:
+            self._capture_error = "The microphone did not close cleanly; audio saved for review."
         if not self._frames:
             raise RuntimeError(
                 f"{self.device_name} opened but returned no audio. "
@@ -144,4 +168,7 @@ class Recorder:
             w.setsampwidth(2)
             w.setframerate(SAMPLE_RATE)
             w.writeframes(data.tobytes())
-        return buf.getvalue(), duration
+        wav_bytes = buf.getvalue()
+        if self._capture_error:
+            raise RecordingError(self._capture_error, wav_bytes)
+        return wav_bytes, duration

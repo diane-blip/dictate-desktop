@@ -1,6 +1,6 @@
 # Optional shortcuts only. Does not install packages or start Dictate.
 [CmdletBinding(SupportsShouldProcess)]
-param([switch]$Remove)
+param([switch]$Remove, [string]$Directory = '')
 $ErrorActionPreference = 'Stop'
 $appDir = $PSScriptRoot
 $python = Join-Path $appDir '.venv\Scripts\pythonw.exe'
@@ -10,11 +10,17 @@ if (-not $Remove -and -not (Test-Path -LiteralPath $python)) {
     throw 'Run install.ps1 before creating shortcuts.'
 }
 $shell = New-Object -ComObject WScript.Shell
-$shortcuts = foreach ($folder in @('Startup', 'Desktop')) {
-    $path = Join-Path ([Environment]::GetFolderPath($folder)) 'Dictate.lnk'
+$destinations = if ($Directory) {
+    if (-not (Test-Path -LiteralPath $Directory -PathType Container)) { throw 'Shortcut directory does not exist.' }
+    @((Resolve-Path -LiteralPath $Directory).Path)
+} else {
+    @([Environment]::GetFolderPath('Startup'), [Environment]::GetFolderPath('Desktop'))
+}
+$shortcuts = foreach ($folder in $destinations) {
+    $path = Join-Path $folder 'Dictate Desktop.lnk'
     $shortcut = $shell.CreateShortcut($path)
     $exists = Test-Path -LiteralPath $path
-    $ours = $shortcut.TargetPath -eq $python -or $shortcut.TargetPath -eq $legacyLauncher -or (
+    $ours = ($shortcut.TargetPath -eq $python -and $shortcut.Arguments -eq ('"' + $script + '"')) -or $shortcut.TargetPath -eq $legacyLauncher -or (
         $shortcut.TargetPath -eq (Join-Path $env:WINDIR 'System32\wscript.exe') -and
         $shortcut.Arguments -eq ('"' + $legacyLauncher + '"')
     )

@@ -4,8 +4,9 @@ The snippet file is a Markdown table:
 
     | Say            | Insert    |
     |----------------|-----------|
-    | brand pink     | #F49CBB   |
+    | accent color     | #0F766E   |
 """
+
 import re
 from pathlib import Path
 
@@ -32,7 +33,12 @@ def load_snippets(path: Path) -> list[tuple[str, str]]:
 def apply_local(text: str, snippets: list[tuple[str, str]]) -> str:
     """Fallback matching when the AI cleanup pass is unavailable: exact
     phrase replacement, case-insensitive, longest phrases first."""
-    for phrase, expansion in sorted(snippets, key=lambda s: -len(s[0])):
-        pattern = r"(?<!\w)" + re.escape(phrase) + r"(?!\w)"
-        text = re.sub(pattern, expansion.replace("\\", "\\\\"), text, flags=re.IGNORECASE)
-    return text
+    replacements = {phrase.casefold(): expansion for phrase, expansion in snippets if phrase}
+    if not replacements:
+        return text
+    phrases = sorted(replacements, key=len, reverse=True)
+    pattern = r"(?<!\w)(?:" + "|".join(map(re.escape, phrases)) + r")(?!\w)"
+    # One pass: expansion contents never trigger another snippet.
+    return re.sub(
+        pattern, lambda match: replacements[match.group().casefold()], text, flags=re.IGNORECASE
+    )

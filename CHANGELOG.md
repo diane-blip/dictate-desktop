@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.0 · October 15, 2026
+
+First personal-profile public source release, based on the previously prepared member edition.
+
+- Neutral gray, white, teal and blue Windows tray/Recents styling; larger readable text, keyboard log action and generated microphone icon.
+- Cloud cleanup off by default, bounded output budget and HTTP-client cleanup even when SDK construction fails.
+- Bounded audio capture; dropped, overlong or interrupted captures retain their WAV instead of appearing complete. Destination menus block Windows insertion.
+- Hash-locked runtime and development dependencies; Windows/macOS automated checks and documented release verification.
+- Diane Green's macOS port preserved and credited. Added its missing sound module; history now precedes paste; incomplete cleanup falls back; modifier/clipboard failure cleanup is guarded; Quit/Restart target only this installation and wait for work to save; installer/bundle avoid broad process kills and recursive bundle deletion. Removed unused macOS GUI dependencies.
+- Separate public repository and shortcut names; no personal installation data, API keys, recordings or private history included.
+
+## Earlier member-edition history
+
 ## Unreleased
 
 Windows public-release candidate, pending owner approval.

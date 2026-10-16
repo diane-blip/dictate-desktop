@@ -7,7 +7,7 @@ Keep Dictate small, understandable and dependable at the moment someone finishes
 Use Windows and Python 3.12. Install the locked runtime with `install.ps1`, then development tools:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+.\.venv\Scripts\python.exe -m pip install --require-hashes -r requirements-dev.txt
 .\.venv\Scripts\ruff.exe check .
 .\.venv\Scripts\ruff.exe format --check .
 .\.venv\Scripts\python.exe -m unittest discover -v
@@ -51,7 +51,7 @@ Clipboard preservation; explicit copy; recovery before insertion; stale destinat
 `requirements.txt` lists direct dependency ranges. `requirements.lock` is the tested Windows/Python 3.12 resolution with hashes. Regenerate deliberately on that platform:
 
 ```powershell
-.\.venv\Scripts\pip-compile.exe --generate-hashes --allow-unsafe --strip-extras --output-file requirements.lock requirements.txt
+.\.venv\Scripts\uv.exe pip compile requirements.txt --generate-hashes --python-version 3.12 --python-platform x86_64-pc-windows-msvc --no-header -o requirements.lock
 .\.venv\Scripts\python.exe -m pip_audit -r requirements.lock --disable-pip --no-deps
 ```
 
@@ -61,4 +61,14 @@ Small fixes can be pull requests. For larger changes, describe the user need and
 
 ## Hosted checks
 
-[docs/ci-windows.yml](docs/ci-windows.yml) is the prepared GitHub Actions workflow, with read-only permissions and commit-pinned actions. It is not active. A maintainer with workflow-writing permission can install it at `.github/workflows/checks.yml` after review. Until then, use the local commands above; do not assume pull requests receive automatic checks.
+The active [GitHub workflow](.github/workflows/checks.yml) runs Windows and macOS software checks with read-only permissions and commit-pinned actions. Native Windows interaction checks and real hardware acceptance are separate.
+
+## Public edition and macOS contributions
+
+Read AUTHORS.md before describing provenance. Keep `macos/` independent; preserve its contributor credit and verify platform-specific changes on macOS. Platform-neutral copies (`audio.py`, `log.py`, `snippets.py`, `transcribe.py`) must be compared when porting fixes. Do not silently import the Windows keyboard or sound backend into macOS.
+
+The five controlled Windows interaction checks require `DICTATE_INTEGRATION=1` and an interactive desktop. Keep hands off the temporary test editor. Never run dictation-key injection beside a real installation using that pair.
+
+macOS checks: from `macos/`, set `PYNPUT_BACKEND=dummy` and run `python -m unittest discover -s . -p "test_*.py"`. The dummy backend is for tests only; never set it for ordinary use. Real hardware, OS permissions and app-bundle acceptance remain separate.
+
+Generate the macOS lock with the pinned uv compiler using the command above with `macos/requirements.txt`, `--python-platform aarch64-apple-darwin` and output `macos/requirements.lock`. Development: `uv pip compile requirements-dev.in --universal --generate-hashes --no-header -o requirements-dev.txt`. Inspect every version/provenance change, test it and audit the new locks.

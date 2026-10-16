@@ -1,6 +1,6 @@
 """Dictate — hold a key anywhere, speak, release, text appears at your cursor.
 
-Tray icon states: gray = idle, pink = recording, gold = processing.
+Tray icon states: gray = idle, teal = recording, blue = processing.
 Left-click the tray icon: recent dictations, one deliberate click to copy.
 
 Tk owns the main thread via a
@@ -31,7 +31,8 @@ from PIL import Image, ImageDraw
 
 import hotkeys
 import settings
-from audio import Recorder
+import theme
+from audio import Recorder, RecordingError
 from cleanup import clean
 from insert import foreground_window, insert_text
 from log import append_log, read_recent
@@ -42,9 +43,9 @@ from transcribe import TranscriptionError, transcribe
 
 log = logging.getLogger("dictate")
 
-COLOR_IDLE = "#8a8a8a"
-COLOR_RECORDING = "#F49CBB"
-COLOR_PROCESSING = "#AD8326"
+COLOR_IDLE = theme.IDLE
+COLOR_RECORDING = theme.RECORDING
+COLOR_PROCESSING = theme.PROCESSING
 
 IDLE, RECORDING, PROCESSING = "idle", "recording", "processing"
 
@@ -60,6 +61,7 @@ def acquire_single_instance() -> bool:
     """Return True if we are the only instance; False if another already holds the lock."""
     global _instance_lock
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
     try:
         s.bind(("127.0.0.1", _SINGLE_INSTANCE_PORT))
     except OSError:
@@ -142,6 +144,7 @@ class App:
         self.state = state
         color = {IDLE: COLOR_IDLE, RECORDING: COLOR_RECORDING, PROCESSING: COLOR_PROCESSING}[state]
         self.icon.icon = _icon_image(color)
+        self.icon.title = f"Dictate: {state}"
 
     def boop(self, which: str) -> None:
         if self.cfg.get("sounds", True):
@@ -168,6 +171,10 @@ class App:
             log.info("recording started; microphone=%r", self.recorder.device_name)
             self.boop("start")
         except Exception as e:
+            try:
+                self.recorder.stop()
+            except Exception:
+                pass
             with self.lock:
                 self.set_state(IDLE)
             self.notify(f"Microphone error: {e}")
@@ -179,6 +186,11 @@ class App:
             self.set_state(PROCESSING)
         try:
             wav_bytes, _duration = self.recorder.stop()
+        except RecordingError as exc:
+            saved = self._salvage_audio(exc.wav_bytes)
+            self.set_state(IDLE)
+            self.notify(str(exc) if saved else "Capture failed and audio could not be saved.")
+            return
         except Exception as e:
             self.set_state(IDLE)
             self.notify(f"Microphone error: {e}")
@@ -203,7 +215,7 @@ class App:
             except Exception as e:
                 # The audio still exists; save it so the words are recoverable.
                 saved = self._salvage_audio(wav_bytes)
-                msg = str(e) if isinstance(e, TranscriptionError) else f"Unexpected error: {e}"
+                msg = str(e) if isinstance(e, TranscriptionError) else "Transcription failed."
                 if saved:
                     msg += f" — audio saved to recordings\\{saved.name}"
                 self.notify(msg)
@@ -215,7 +227,11 @@ class App:
             except (OSError, UnicodeError):
                 snippets = []
                 self.notify("Could not read snippets; using the transcript without expansions.")
-            text = clean(transcript, snippets, self.cfg)
+            try:
+                text = clean(transcript, snippets, self.cfg)
+            except Exception:
+                text = transcript
+                self.notify("Cleanup failed; keeping the original transcript.")
             if text:
                 self.recents.append(text)
                 log_cfg = self.cfg.get("log", {})

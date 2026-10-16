@@ -49,6 +49,7 @@ class InsertTextTests(unittest.TestCase):
                         side_effect=lambda k, held=held: 0x8000 if k in held else 0,
                     ),
                     patch.object(insert._user32, "GetForegroundWindow", return_value=123),
+                    patch.object(insert, "_menu_active", return_value=False),
                     patch.object(insert.time, "sleep", side_effect=release),
                     patch.object(
                         insert,
@@ -89,7 +90,11 @@ class InsertTextTests(unittest.TestCase):
     def test_insert_uses_direct_input(self):
         batches = []
 
-        with patch.object(insert, "_send_units", side_effect=lambda units: batches.append(units)):
+        with (
+            patch.object(insert, "_send_units", side_effect=lambda units: batches.append(units)),
+            patch.object(insert, "_wait_for_plain_input"),
+            patch.object(insert, "foreground_window", return_value=123),
+        ):
             insert.insert_text("copied image stays put")
 
         self.assertEqual(batches, [insert._utf16_units("copied image stays put")])
@@ -100,6 +105,8 @@ class InsertTextTests(unittest.TestCase):
         with (
             patch.object(insert, "_send_units", side_effect=lambda units: batches.append(units)),
             patch.object(insert.time, "sleep"),
+            patch.object(insert, "_wait_for_plain_input"),
+            patch.object(insert, "foreground_window", return_value=123),
         ):
             insert.insert_text(text)
 

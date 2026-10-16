@@ -1,24 +1,62 @@
 """Recent-dictations popup: left-click the tray icon, click a row (or press
 its digit) to copy that dictation back to the clipboard.
 
-Same canvas-rendered look as the capture app's palette (true rounded corners
-via the -transparentcolor trick, DPI-aware sizing, SRC tokens: gold does the
-structural eyebrow, pink only marks the interactive digit chips).
+Native Windows recovery popup. Opening and dismissing it never copy text.
 """
 
 import ctypes
 import tkinter as tk
 import tkinter.font as tkfont
+from ctypes import wintypes
 
-INK = "#161314"  # container surface
-ROW = "#211d1e"  # row surface
-HOVER = "#2d2728"  # row hover
-EDGE = "#39322f"  # hairline container border
-PAPER = "#FEFCFD"
-MUTED = "#8d8586"
-PINK = "#F0BDCE"
-GOLD = "#AD8326"
+from theme import ACCENT, EDGE, HOVER, MUTED, ROW
+from theme import SURFACE as INK
+from theme import TEXT as PAPER
+
 TRANSPARENT = "#010203"  # never-drawn key color -> real rounded corners
+
+
+def _work_area(root):
+    """Available rectangle on the pointer's monitor, excluding taskbars."""
+
+    class MonitorInfo(ctypes.Structure):
+        _fields_ = [
+            ("size", wintypes.DWORD),
+            ("monitor", wintypes.RECT),
+            ("work", wintypes.RECT),
+            ("flags", wintypes.DWORD),
+        ]
+
+    user = ctypes.windll.user32
+    user.MonitorFromPoint.argtypes = (wintypes.POINT, wintypes.DWORD)
+    user.MonitorFromPoint.restype = wintypes.HANDLE
+    user.GetMonitorInfoW.argtypes = (wintypes.HANDLE, ctypes.POINTER(MonitorInfo))
+    monitor = user.MonitorFromPoint(wintypes.POINT(root.winfo_pointerx(), root.winfo_pointery()), 2)
+    info = MonitorInfo(size=ctypes.sizeof(MonitorInfo))
+    if user.GetMonitorInfoW(monitor, ctypes.byref(info)):
+        return info.work.left, info.work.top, info.work.right, info.work.bottom
+    return 0, 0, root.winfo_screenwidth(), root.winfo_screenheight()
+
+
+def _place_window(top, width, height, x, y):
+    """Use absolute desktop coordinates, including monitors left of the primary."""
+    top.geometry(f"{width}x{height}")
+    top.update_idletasks()
+    user = ctypes.windll.user32
+    user.GetAncestor.argtypes = (wintypes.HWND, wintypes.UINT)
+    user.GetAncestor.restype = wintypes.HWND
+    user.SetWindowPos.argtypes = (
+        wintypes.HWND,
+        wintypes.HWND,
+        ctypes.c_int,
+        ctypes.c_int,
+        ctypes.c_int,
+        ctypes.c_int,
+        wintypes.UINT,
+    )
+    hwnd = user.GetAncestor(top.winfo_id(), 2)  # Tk's outer native window
+    if not user.SetWindowPos(hwnd, None, x, y, width, height, 0x0004 | 0x0010):
+        raise OSError("Could not position recent dictations")
 
 
 def _round_rect(c: tk.Canvas, x0, y0, x1, y1, r, **kw):
@@ -94,19 +132,23 @@ class Recents:
             s = 1.0
         text_family = _pick_font(root, ["Segoe UI Variable Text", "Segoe UI"])
         disp_family = _pick_font(root, ["Segoe UI Variable Display", "Segoe UI"])
-        row_font = tkfont.Font(family=text_family, size=-int(13 * s))
+        row_font = tkfont.Font(family=text_family, size=-int(16 * s))
 
         pad = int(16 * s)
-        row_h = int(38 * s)
+        row_h = int(44 * s)
         row_gap = int(5 * s)
-        head_h = int(26 * s)
+        head_h = int(52 * s)
         chip = int(24 * s)
-        width = int(430 * s)
+        left, upper, right, bottom = _work_area(root)
+        scrollbar_width = int(17 * s)
+        width = min(int(500 * s), right - left - 16 - scrollbar_width)
 
         # Rows: the entries (or one empty-state row), then "Open the full log".
         digits = [str((i + 1) % 10) for i in range(len(entries))]  # 1..9 then 0
         n_rows = max(len(entries), 1) + 1
         height = pad * 2 + head_h + n_rows * (row_h + row_gap) - row_gap
+        visible_height = min(height, bottom - upper - 16)
+        overflowing = visible_height < height
 
         self.top = tk.Toplevel(root)
         self.top.overrideredirect(True)
@@ -115,10 +157,24 @@ class Recents:
         self.top.attributes("-transparentcolor", TRANSPARENT)
 
         c = tk.Canvas(
-            self.top, width=width, height=height, bg=TRANSPARENT, highlightthickness=0, bd=0
+            self.top, width=width, height=visible_height, bg=INK, highlightthickness=0, bd=0
         )
-        c.pack()
+        c.pack(side="left")
         self.canvas = c
+        if overflowing:
+            scroll = tk.Scrollbar(
+                self.top,
+                orient="vertical",
+                command=c.yview,
+                width=scrollbar_width,
+                borderwidth=0,
+                highlightthickness=0,
+            )
+            scroll.pack(side="right", fill="y")
+            c.configure(yscrollcommand=scroll.set, scrollregion=(0, 0, width, height))
+            self.top.bind("<MouseWheel>", lambda e: c.yview_scroll(-int(e.delta / 120), "units"))
+            self.top.bind("<Next>", lambda e: c.yview_scroll(1, "pages"))
+            self.top.bind("<Prior>", lambda e: c.yview_scroll(-1, "pages"))
 
         _round_rect(
             c,
@@ -132,22 +188,22 @@ class Recents:
             width=max(1, int(s)),
         )
 
-        eyebrow = " ".join("DICTATE")
+        heading = "Recent dictations"
         c.create_text(
             pad + int(2 * s),
-            pad + head_h // 2 - int(3 * s),
+            pad + int(10 * s),
             anchor="w",
-            text=eyebrow,
-            fill=GOLD,
-            font=(disp_family, -int(11 * s), "bold"),
+            text=heading,
+            fill=PAPER,
+            font=(disp_family, -int(18 * s), "bold"),
         )
         c.create_text(
-            width - pad - int(2 * s),
-            pad + head_h // 2 - int(3 * s),
-            anchor="e",
-            text="click to copy · esc",
+            pad + int(2 * s),
+            pad + int(34 * s),
+            anchor="w",
+            text="Click or press a number to copy. Esc closes.",
             fill=MUTED,
-            font=(text_family, -int(11 * s)),
+            font=(text_family, -int(13 * s)),
         )
 
         self._row_rects = {}
@@ -170,7 +226,7 @@ class Recents:
                     cx + chip,
                     cy + chip // 2,
                     chip // 2,
-                    fill=PINK,
+                    fill=ACCENT,
                     outline="",
                     tags=tag,
                 )
@@ -188,7 +244,7 @@ class Recents:
                 anchor="w",
                 text=label,
                 fill=fill_label,
-                font=(text_family, -int(13 * s)),
+                font=(text_family, -int(16 * s)),
                 tags=tag,
             )
             if cb is not None:
@@ -210,19 +266,33 @@ class Recents:
             add_row(0, None, "Nothing dictated yet.", MUTED, None)
             y += row_h + row_gap
 
-        add_row(n_rows - 1, None, "Open the full log", GOLD, open_log)
+        add_row(n_rows - 1, "L", "Open the full log", ACCENT, open_log)
+        self.top.bind("<KeyPress-l>", lambda e: self._digit(e, "L", open_log))
+        self.top.bind("<KeyPress-L>", lambda e: self._digit(e, "L", open_log))
 
         self.top.bind("<Escape>", lambda e: self._finish(None))
-        self.top.bind("<FocusOut>", lambda e: self._finish(None))
+
+        def focus_out(_event):
+            def check():
+                if self.finished:
+                    return
+                focused = self.top.focus_displayof()
+                if focused is None or not str(focused).startswith(str(self.top)):
+                    self._finish(None)
+
+            self.top.after_idle(check)
+
+        self.top.bind("<FocusOut>", focus_out)
 
         # Place near the cursor (which just clicked the tray icon), clamped
         # to the screen.
-        x = min(max(root.winfo_pointerx() - int(20 * s), 8), root.winfo_screenwidth() - width - 8)
+        total_width = width + (scrollbar_width if overflowing else 0)
+        x = min(max(root.winfo_pointerx() - int(20 * s), left + 8), right - total_width - 8)
         yy = min(
-            max(root.winfo_pointery() - height + int(10 * s), 8),
-            root.winfo_screenheight() - height - 8,
+            max(root.winfo_pointery() - visible_height + int(10 * s), upper + 8),
+            bottom - visible_height - 8,
         )
-        self.top.geometry(f"{width}x{height}+{x}+{yy}")
+        _place_window(self.top, total_width, visible_height, x, yy)
         self.top.focus_force()
 
     def _hover(self, tag, on):

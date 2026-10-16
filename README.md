@@ -1,78 +1,79 @@
 # Dictate
 
-Hold two keys, speak, release. Dictate types the transcript into your Windows app while leaving your clipboard alone.
+**Hold two keys, speak, release. Your words appear in your Windows app.**
 
-A small Python tray app with recoverable transcripts, configurable voice snippets and optional AI cleanup. Built by [Diane Whiddon](https://swayrisecreative.com/), used in her daily work, and shared under the [MIT license](LICENSE).
+A small Python tray utility with recoverable transcripts, voice snippets and optional AI cleanup. Windows typing leaves the clipboard alone. Created by [Diane Whiddon](https://github.com/diane-blip); MIT licensed.
 
-**Windows 10/11, Python 3.12, internet access and your own API key.** This is a source installation, not a signed standalone installer. Audio is transcribed by Groq or OpenAI. Optional cleanup sends the transcript and snippets to Anthropic. Provider usage limits and charges apply; see [privacy and costs](docs/privacy.md).
+The separate **[macOS port](macos/README.md) is by [Diane Green](https://github.com/dianegreendesign)**. Her headless implementation and credit are preserved. See [authors and contribution history](AUTHORS.md).
 
-## Use it
+![Recent dictations with fictional sample text](docs/images/recents.png)
 
-1. Put the cursor where the text should go.
-2. Hold **Left Ctrl + Left Windows** together. Wait for the start sound.
-3. Speak, then release the keys. The tray icon turns gold while processing.
-4. Keep the destination focused until the text arrives.
+## Download and install on Windows
 
-The icon is gray when idle and pink while recording. Left-click it to open **Recent dictations**; click a row to copy its complete text. Opening or closing Recents leaves the clipboard unchanged. Right-click for settings, snippets, history and Quit.
+Requires **Windows 10/11 x64, 64-bit Python 3.12, internet access and your own Groq or OpenAI API key**. Optional cleanup uses an Anthropic API key. Provider charges and limits apply.
 
-Transcripts are saved before insertion by default. A transcription failure saves the recording under `recordings/`. If the foreground window changes, insertion stops and the transcript remains in Recents. Review text before submitting it; Dictate never presses Send.
-
-## Install on Windows
-
-Install [Python 3.12](https://www.python.org/downloads/) with its **py launcher** and [Git](https://git-scm.com/downloads/win). Use a folder you control, outside a cloud-synced directory if you want local history to stay local.
-
-In PowerShell:
+1. Download **Dictate-0.1.0-source.zip** from [Releases](https://github.com/diane-blip/dictate-desktop/releases/tag/v0.1.0). Extract it to a permanent folder you control.
+2. Install [Python 3.12](https://www.python.org/downloads/windows/) with its `py` launcher if needed.
+3. Open PowerShell in the extracted folder:
 
 ```powershell
-git clone https://github.com/SRC-Rabbit-Hole/dictate-starter.git
-cd dictate-starter
 .\install.ps1
 notepad .env
 ```
 
-Set `GROQ_API_KEY` from [Groq Console](https://console.groq.com/). An `ANTHROPIC_API_KEY` is optional. Without it, Dictate uses the raw transcript plus local snippet matching.
+Add `GROQ_API_KEY` from [Groq Console](https://console.groq.com/). To use OpenAI instead, follow [configuration](docs/configuration.md). Cleanup is off by default; it requires both an explicit setting and an Anthropic key.
 
-If Windows blocks the local setup script, inspect it, then run this one-process exception:
+If Windows blocks the downloaded script, inspect it, then run `Unblock-File .\install.ps1` and retry. A computer's execution policy can still restrict scripts. You can also follow the equivalent environment and locked-install commands in `install.ps1`. Pass `-Python 'C:\path\to\python.exe'` if the launcher is unavailable.
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
-```
+The installer creates `.venv`, verifies the Python version, installs version- and hash-locked dependencies, and creates local configuration templates. It does not launch Dictate, request administrator access, or enable startup. This is a **source distribution with a setup script**, not a signed standalone executable. Git is optional.
 
-Start in a console for your first test:
+## First use
+
+Quit any other Dictate installation. The single-instance guard prevents duplicate recording and insertion.
 
 ```powershell
 .\.venv\Scripts\python.exe dictate.py
 ```
 
-Speak a short sentence into a text editor. Check the transcript and Recents. After that, `start-dictate.vbs` launches without a console, or use the optional shortcuts:
+1. Put the cursor in a text editor.
+2. Hold **Left Ctrl + Left Windows**. Wait for the start sound before speaking.
+3. Speak a short sentence, then release either key and let both keys up.
+4. Keep that window focused until the text arrives. Review it before sending.
+
+The tray icon is **gray when idle, teal while recording, blue while processing**. Its tooltip also names the state. Left-click for **Recent dictations**. Click a row or press its number to copy the complete transcript. Press **L** to open the full log; **Esc** closes the popup. Opening or dismissing it does not copy anything.
+
+For later launches, double-click `start-dictate.vbs`. Optional Desktop and login-startup shortcuts:
 
 ```powershell
 .\setup-startup.ps1
 ```
 
-That creates Desktop and login-startup shortcuts. It refuses to overwrite a shortcut belonging to another installation. **Installation alone does not enable startup.** No administrator access is required.
+Shortcuts are named **Dictate Desktop**. The script refuses to replace another installation's shortcut and validates all destinations before changing any. To create only a shortcut in a chosen existing folder, pass `-Directory 'C:\your\folder'`. Setup alone never enables startup.
 
-## Customize, update or remove
+## Recovery and privacy
 
-Use **Open config** to edit untracked `config.local.toml`, then **Reload config** while idle. Your overrides survive updates. Edit `snippets.md` to map a spoken phrase to text, or point to your own file. See [configuration](docs/configuration.md).
+Transcripts are saved before insertion by default. Changing windows, held modifiers, an open menu or a rejected input stops insertion; recover the text from Recents. Focus guards follow the window, not individual fields inside it. Some text can already have been inserted when focus changes.
 
-For an update, quit Dictate, keep a private backup of your settings/snippets/history, then:
+Transcription failures retain a WAV under `recordings/`. Dropped or excessive audio is saved for review instead of being silently transcribed as a complete recording. The microphone closes when recording ends. A ten-minute limit prevents unbounded capture; it is not a promise about practical provider limits or processing speed.
 
-```powershell
-git pull --ff-only
-.\install.ps1
-```
+Audio goes to **Groq**, or **OpenAI** if selected. Optional cleanup sends the transcript and full snippet table to **Anthropic**. AI cleanup can still alter wording; leave it off when you want the raw transcript plus exact local snippet matching. Dictate has no telemetry and never presses Send. [Data storage, privacy and costs](docs/privacy.md).
 
-If Git reports local edits, preserve and reconcile them; do not reset your changes. Existing users should read [the migration notes](CHANGELOG.md) before updating.
+## Configure, update or remove
 
-To remove: quit, run `./setup-startup.ps1 -Remove` if you created shortcuts, then delete this installation folder when you no longer need its private history, recordings or keys. Copies in backups or synced folders remain.
+Use **Open config** to edit `config.local.toml`, then **Reload config** while idle. Keep personal snippets in a separate `*.local.md` file so updates do not overwrite them. [All settings and examples](docs/configuration.md).
 
-## Limits and other platforms
+For a ZIP update, quit Dictate, remove its old shortcuts with `setup-startup.ps1 -Remove`, extract the new release into a new folder and run its installer. Copy your own `.env`, `config.local.toml`, personal snippets and any history you want to retain. Recreate optional shortcuts only after a successful test. Keep the old folder until verified.
 
-- Windows insertion uses Unicode input events. Some applications reject them; elevated applications cannot receive input from a normal process. Recover the text from Recents instead of running Dictate as administrator.
-- The focus guard tracks the foreground **window**, not every field inside it. Do not switch fields or type while insertion is in progress. Partial insertion is possible if focus changes mid-transcript.
-- Network, transcription and cleanup can fail. Recovery helps, but neither recognition accuracy nor perfect word preservation is guaranteed.
-- Recording auto-stops and processes at ten minutes. There is no offline transcription in this release.
-- The [macOS port](macos/README.md), contributed by [dianegreendesign](https://github.com/dianegreendesign), is a separate community implementation. It uses clipboard paste, has different providers, and has not received this Windows release's acceptance testing. It cannot preserve image/file clipboard contents.
+For a Git checkout, quit, back up your local files, then `git pull --ff-only` and run `install.ps1`. Never overwrite divergent work to force an update.
 
-[Architecture and development](CONTRIBUTING.md) · [Privacy](docs/privacy.md) · [Troubleshooting](docs/troubleshooting.md) · [Security](SECURITY.md) · [Verification and limits](docs/verification.md) · [Release checklist](docs/releasing.md)
+To uninstall, quit and run `setup-startup.ps1 -Remove` from that installation (use the same `-Directory` if you chose one). Delete its folder. History, failed recordings, custom files outside it, backups and clipboard history require separate deletion. Do not delete files shared with another application.
+
+## macOS
+
+The [community port](macos/README.md) keeps Diane Green's Right Command + Right Option workflow, Groq cleanup option and local `.app` launcher. It uses clipboard paste and restores **text only**; copied images/files are not preserved. It has separate code and dependency locks. Automated checks do not establish microphone, permissions, clipboard or app-bundle behavior on a person's Mac. Read its instructions and limitations before installing.
+
+## Development
+
+[Architecture and contribution guide](CONTRIBUTING.md) · [Security](SECURITY.md) · [Verification and limits](docs/verification.md) · [Troubleshooting](docs/troubleshooting.md) · [Changelog](CHANGELOG.md)
+
+Each release includes an exact-commit source ZIP and SHA-256 checksums. Windows and macOS software checks run through GitHub Actions. Hardware acceptance is recorded separately. Contributions should include focused regression tests and preserve platform-specific behavior and authorship.

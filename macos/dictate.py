@@ -1,26 +1,29 @@
 """Dictate, headless. Same hotkey -> transcribe -> cleanup -> paste pipeline as
 dictate.py, but with NO menu bar (that toolkit will not render on macOS 26). This
-is what the background LaunchAgent runs. Feedback is the start/stop boops plus
+is the process launched by the locally built app bundle. Feedback is the start/stop boops plus
 macOS notifications; recent dictations live in dictation-log.md.
 
-Control it with the dictatectl script (start / stop / status / log).
+Control it with the Start, Quit and Restart command files.
 """
+
 import faulthandler
 import json
 import logging
+import os
+import signal
 import socket
 import subprocess
 import sys
 import threading
 import time
 from datetime import datetime
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
-import pyperclip
 from pynput import keyboard as pk
 
 import settings
-from audio import Recorder
+from audio import Recorder, RecordingError
 from cleanup import clean
 from insert import insert_text
 from log import append_log
@@ -28,20 +31,33 @@ from snippets import load_snippets
 from sounds import Boops
 from transcribe import TranscriptionError, transcribe
 
-_log_handler = logging.FileHandler(settings.APP_DIR / "dictate.log", encoding="utf-8")
-logging.basicConfig(handlers=[_log_handler], level=logging.INFO,
-                    format="%(asctime)s %(levelname)s %(message)s")
+_log_handler = RotatingFileHandler(
+    settings.APP_DIR / "dictate.log", maxBytes=1_000_000, backupCount=2, encoding="utf-8"
+)
+logging.basicConfig(
+    handlers=[_log_handler], level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s"
+)
 faulthandler.enable(_log_handler.stream)
 log = logging.getLogger("dictate")
 
 IDLE, RECORDING, PROCESSING = "idle", "recording", "processing"
 
 KEYMAP = {
-    "right cmd": pk.Key.cmd_r, "left cmd": pk.Key.cmd_l, "cmd": pk.Key.cmd,
-    "right option": pk.Key.alt_r, "left option": pk.Key.alt_l, "option": pk.Key.alt,
-    "right opt": pk.Key.alt_r, "left opt": pk.Key.alt_l, "opt": pk.Key.alt,
-    "right ctrl": pk.Key.ctrl_r, "left ctrl": pk.Key.ctrl_l, "ctrl": pk.Key.ctrl,
-    "right shift": pk.Key.shift_r, "left shift": pk.Key.shift_l, "shift": pk.Key.shift,
+    "right cmd": pk.Key.cmd_r,
+    "left cmd": pk.Key.cmd_l,
+    "cmd": pk.Key.cmd,
+    "right option": pk.Key.alt_r,
+    "left option": pk.Key.alt_l,
+    "option": pk.Key.alt,
+    "right opt": pk.Key.alt_r,
+    "left opt": pk.Key.alt_l,
+    "opt": pk.Key.alt,
+    "right ctrl": pk.Key.ctrl_r,
+    "left ctrl": pk.Key.ctrl_l,
+    "ctrl": pk.Key.ctrl,
+    "right shift": pk.Key.shift_r,
+    "left shift": pk.Key.shift_l,
+    "shift": pk.Key.shift,
 }
 
 _SINGLE_INSTANCE_PORT = 49731
@@ -75,12 +91,15 @@ class Controller:
         self.recorder = Recorder(self.cfg.get("audio", {}).get("preferred_input"))
         self.state = IDLE
         self.lock = threading.Lock()
+        self.capture_lock = threading.Lock()
         self.pressed_at = 0.0
         self.suppress_until = 0.0
         self.targets: set = set()
         self.pressed: set = set()
         self.listener: pk.Listener | None = None
         self.stop_watchdog = threading.Event()
+        self.shutdown = threading.Event()
+        self.session_thread = None
 
     def boop(self, which: str) -> None:
         if self.cfg.get("sounds", True):
@@ -90,8 +109,13 @@ class Controller:
         log.warning(message)
         try:
             script = f'display notification {json.dumps(message)} with title "Dictate"'
-            subprocess.run(["osascript", "-e", script], check=False,
-                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.run(
+                ["osascript", "-e", script],
+                check=False,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=3,
+            )
         except Exception:
             pass
 
@@ -115,15 +139,21 @@ class Controller:
 
     def on_press(self) -> None:
         with self.lock:
-            if self.state != IDLE:
+            if self.state != IDLE or self.shutdown.is_set():
                 return
             self.state = RECORDING
         self.pressed_at = time.monotonic()
         try:
-            self.recorder.start()
+            with self.capture_lock:
+                self.recorder.start()
             log.info("recording started; microphone=%r", self.recorder.device_name)
             self.boop("start")
         except Exception as e:
+            with self.capture_lock:
+                try:
+                    self.recorder.stop()
+                except Exception:
+                    pass
             with self.lock:
                 self.state = IDLE
             self.notify(f"Microphone error: {e}")
@@ -134,7 +164,13 @@ class Controller:
                 return
             self.state = PROCESSING
         try:
-            wav_bytes, _ = self.recorder.stop()
+            with self.capture_lock:
+                wav_bytes, _ = self.recorder.stop()
+        except RecordingError as exc:
+            saved = self._salvage_audio(exc.wav_bytes)
+            self.state = IDLE
+            self.notify(str(exc) if saved else "Capture failed and audio could not be saved.")
+            return
         except Exception as e:
             self.state = IDLE
             self.notify(f"Microphone error: {e}")
@@ -144,7 +180,8 @@ class Controller:
         if held_ms < self.cfg["min_hold_ms"] or not wav_bytes:
             self.state = IDLE
             return
-        threading.Thread(target=self.process, args=(wav_bytes,), daemon=True).start()
+        self.session_thread = threading.Thread(target=self.process, args=(wav_bytes,))
+        self.session_thread.start()
 
     def process(self, wav_bytes: bytes) -> None:
         try:
@@ -152,24 +189,34 @@ class Controller:
                 transcript = transcribe(wav_bytes, self.cfg)
             except Exception as e:
                 saved = self._salvage_audio(wav_bytes)
-                msg = str(e) if isinstance(e, TranscriptionError) else f"Unexpected error: {e}"
+                msg = str(e) if isinstance(e, TranscriptionError) else "Transcription failed."
                 if saved:
                     msg += f" — audio saved to recordings/{saved.name}"
                 self.notify(msg)
                 return
             if not transcript:
                 return
-            snippets = load_snippets(self.cfg["snippets"]["resolved_path"])
-            text = clean(transcript, snippets, self.cfg)
+            try:
+                snippets = load_snippets(self.cfg["snippets"]["resolved_path"])
+            except (OSError, UnicodeError):
+                snippets = []
+                self.notify("Could not read snippets; keeping the transcript.")
+            try:
+                text = clean(transcript, snippets, self.cfg)
+            except Exception:
+                text = transcript
             if text:
-                self.suppress_until = time.monotonic() + 1.0
-                insert_text(text, self.cfg["paste_combo"], self.cfg["restore_clipboard"])
                 log_cfg = self.cfg.get("log", {})
                 if log_cfg.get("enabled"):
                     try:
                         append_log(log_cfg["resolved_path"], text)
-                    except Exception:
-                        pass
+                    except OSError:
+                        self._salvage_audio(wav_bytes)
+                        self.notify("History could not be saved; audio recovery was attempted.")
+                if self.shutdown.is_set():
+                    return
+                self.suppress_until = time.monotonic() + 1.0
+                insert_text(text, self.cfg["paste_combo"], self.cfg["restore_clipboard"])
         except Exception as e:
             self.notify(f"Unexpected error: {e}")
         finally:
@@ -179,29 +226,45 @@ class Controller:
         try:
             folder = settings.APP_DIR / "recordings"
             folder.mkdir(exist_ok=True)
-            path = folder / f"failed-{datetime.now():%Y%m%d-%H%M%S}.wav"
+            path = folder / f"failed-{datetime.now():%Y%m%d-%H%M%S-%f}.wav"
             path.write_bytes(wav_bytes)
             return path
         except Exception:
             return None
 
     def run(self) -> None:
-        self.targets = {_resolve_key(self.cfg["hotkey_key1"]),
-                        _resolve_key(self.cfg["hotkey_key2"])}
+        self.targets = {
+            _resolve_key(self.cfg["hotkey_key1"]),
+            _resolve_key(self.cfg["hotkey_key2"]),
+        }
         self.listener = pk.Listener(on_press=self._on_press, on_release=self._on_release)
         self.listener.start()
 
         def watch() -> None:
             while not self.stop_watchdog.wait(0.25):
-                if (self.state == RECORDING
-                        and time.monotonic() - self.pressed_at > self.cfg["max_seconds"]):
-                    self.notify(f"Hit the {self.cfg['max_seconds']}s cap — processing everything captured")
+                if (
+                    self.state == RECORDING
+                    and time.monotonic() - self.pressed_at > self.cfg["max_seconds"]
+                ):
+                    self.notify(
+                        f"Hit the {self.cfg['max_seconds']}s cap — processing everything captured"
+                    )
                     self.on_release()
 
         threading.Thread(target=watch, daemon=True).start()
         log.info("headless started; hotkey=%r+%r", self.cfg["hotkey_key1"], self.cfg["hotkey_key2"])
         self.notify("Dictate is running. Hold Right Command + Right Option to speak.")
-        threading.Event().wait()  # run forever
+        # Signals request orderly shutdown: save active work before exiting.
+        for sig in (signal.SIGTERM, signal.SIGINT):
+            signal.signal(sig, lambda *_: self.shutdown.set())
+        self.shutdown.wait()
+        self.stop_watchdog.set()
+        self.listener.stop()
+        self.listener.join(timeout=3)
+        if self.state == RECORDING:
+            self.on_release()
+        if self.session_thread:
+            self.session_thread.join()
 
 
 if __name__ == "__main__":
@@ -209,7 +272,12 @@ if __name__ == "__main__":
         log.info("another instance already running; exiting")
         sys.exit(0)
     try:
+        pid_file = settings.APP_DIR / ".dictate.pid"
+        pid_file.write_text(str(os.getpid()), encoding="ascii")
         Controller().run()
     except Exception:
         log.exception("fatal error")
         raise
+    finally:
+        if pid_file.exists() and pid_file.read_text(encoding="ascii") == str(os.getpid()):
+            pid_file.unlink()

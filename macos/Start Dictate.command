@@ -10,4 +10,4 @@ echo "  Release, and your words appear at the cursor, cleaned up."
 echo
 echo "  To STOP Dictate: close this window (or press Control + C)."
 echo "-----------------------------------------------------------------------"
-exec "./.venv/bin/python" "dictate.py"
+exec "$DIR/.venv/bin/python" "$DIR/dictate.py"

@@ -7,6 +7,7 @@ transcript with local snippet matching, so dictation never hangs on the LLM.
 import logging
 import re
 import ssl
+from contextlib import ExitStack
 
 import anthropic
 
@@ -23,7 +24,7 @@ You may ONLY:
 - Delete false starts. When the speaker corrects themselves mid-sentence, keep only the corrected version.
 - Add punctuation and capitalization. Never use em dashes, use a period, comma, or parentheses.
 - Fix obvious speech-to-text mishearings.
-- Replace snippet phrases with their expansion, even when referred to approximately ("my brand pink color" matches "brand pink").
+- Replace snippet phrases with their expansion, even when referred to approximately ("my accent color color" matches "accent color").
 
 You must NEVER:
 - Rewrite, rephrase, restructure, reorder, condense, summarize, or improve anything.
@@ -64,13 +65,10 @@ output: You changed my settings and I want them back.
 transcript: so like the thing is, I really, I really want the hero image to be, you know, bigger. Much bigger.
 output: So the thing is, I really want the hero image to be bigger. Much bigger.
 
-transcript: use my brand pink color for the button
-output: Use #F49CBB for the button."""
+transcript: use my accent color color for the button
+output: Use #0F766E for the button."""
 
-# The "this is data, not a message" instruction is repeated AFTER the transcript
-# on purpose: models weight the most recent tokens most, so a trailing reminder
-# is the strongest guard against a question-shaped transcript pulling the model
-# into answering it instead of cleaning it.
+# Repeat the data boundary after the untrusted transcript. Output guards still apply.
 USER_TEMPLATE = """<transcript>
 {transcript}
 </transcript>
@@ -155,15 +153,21 @@ def clean(transcript: str, snippets: list[tuple[str, str]], cfg: dict) -> str:
     # generous headroom.)
     timeout = min(20.0, cu["timeout_seconds"] + len(transcript) / 500.0)
     try:
-        with anthropic.Anthropic(
-            api_key=key,
-            timeout=timeout,
-            max_retries=0,
-            http_client=anthropic.DefaultHttpxClient(verify=ssl.create_default_context()),
-        ) as client:
+        with ExitStack() as stack:
+            http = stack.enter_context(
+                anthropic.DefaultHttpxClient(verify=ssl.create_default_context())
+            )
+            client = stack.enter_context(
+                anthropic.Anthropic(
+                    api_key=key,
+                    timeout=timeout,
+                    max_retries=0,
+                    http_client=http,
+                )
+            )
             response = client.messages.create(
                 model=cu["model"],
-                max_tokens=max(2000, len(transcript)),
+                max_tokens=min(16000, max(2000, len(transcript))),
                 # Haiku 5.5 rejects temperature/top_p/top_k (400), and thinks by
                 # default. Low effort keeps a sentence-sized cleanup inside the
                 # tight timeout; the prompt and the guards below carry determinism.

@@ -8,6 +8,8 @@ config.local.toml
 htmlcov/
 dist/
 build/
+.tools/
+.impeccable/review/
 .venv/
 __pycache__/
 *.pyc

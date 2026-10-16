@@ -1,5 +1,4 @@
-# Dictate configuration (macOS). The app reads this at startup; use the menu
-# bar "Reload config" after editing.
+# macOS defaults. Put changes in config.local.toml, then restart Dictate.
 
 # Two keys held TOGETHER trigger dictation (recording starts only once BOTH are
 # down; releasing EITHER stops it). A lone modifier isn't safe by itself, but a
@@ -8,7 +7,7 @@
 # hand, and macOS reserves nothing for it.
 #
 # Valid names: "right cmd", "left cmd", "right option", "left option",
-# "right ctrl", "left ctrl", "right shift", "left shift", "fn".
+# "right ctrl", "left ctrl", "right shift", "left shift".
 hotkey_key1 = "right cmd"
 hotkey_key2 = "right option"
 
@@ -25,8 +24,7 @@ sounds = true
 sound_volume = 0.2
 
 # How the text is inserted at the cursor. macOS uses cmd+v almost everywhere.
-# Some terminals need cmd+shift+v — change it here, or paste manually from the
-# menu bar (every dictation is one click away under the icon).
+# Some terminals need cmd+shift+v. Recover text from the Markdown log.
 paste_combo = "cmd+v"
 
 # With restore_clipboard = true, whatever you had copied before dictating is put
@@ -48,7 +46,7 @@ openai_model = "whisper-1"
 language = "en"                        # empty string = auto-detect
 
 [cleanup]
-enabled = true
+enabled = false # opt in to sending transcript and snippets to the cleanup provider
 provider = "groq"                      # "groq" or "openai"
 groq_model = "llama-3.3-70b-versatile"
 openai_model = "gpt-4o-mini"
@@ -60,7 +58,7 @@ timeout_seconds = 5.0
 path = "snippets.md"
 
 [log]
-# Running log of everything dictated (markdown, appended after each insertion).
+# Running log of everything dictated (markdown, saved before each insertion).
 # Gitignored by default - it will contain everything you say.
 enabled = true
 path = "dictation-log.md"

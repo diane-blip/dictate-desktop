@@ -29,7 +29,7 @@ Two distinct names from `left/right ctrl`, `left/right shift`, `left/right alt`,
 
 Groq is the default transcription provider. For OpenAI, set `[stt] provider = "openai"` and supply `OPENAI_API_KEY`. Set the associated model field to an available transcription model. `language = ""` enables detection.
 
-Cleanup defaults to Claude Haiku 5.5 with low reasoning effort. It is optional and falls back to the raw transcript with local snippets when unavailable. The timeout scales with text length up to 20 seconds. Custom model choices must support the request parameters in `cleanup.py`.
+Cleanup is off by default. Set `[cleanup] enabled = true` and provide `ANTHROPIC_API_KEY` to use Claude Haiku 5.5 with low reasoning effort. It is optional and falls back to the raw transcript with local snippets when unavailable. The timeout scales with text length up to 20 seconds. Custom model choices must support the request parameters in `cleanup.py`.
 
 ## Snippets and history
 

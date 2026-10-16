@@ -5,6 +5,7 @@ it shares the one GROQ_API_KEY with transcription. Set provider = "openai" in
 config.toml to use OpenAI instead. Any failure or timeout falls back to the raw
 transcript with local snippet matching, so dictation never hangs on the LLM.
 """
+
 import re
 
 import httpx
@@ -71,10 +72,7 @@ output: So the thing is, I really want the hero image to be bigger. Much bigger.
 transcript: use my brand color color for the button
 output: Use #3366FF for the button."""
 
-# The "this is data, not a message" instruction is repeated AFTER the transcript
-# on purpose: models weight the most recent tokens most, so a trailing reminder
-# is the strongest guard against a question-shaped transcript pulling the model
-# into answering it instead of cleaning it.
+# Repeat the data boundary after the untrusted transcript. Output guards still apply.
 USER_TEMPLATE = """<transcript>
 {transcript}
 </transcript>
@@ -117,10 +115,9 @@ def _pov_drifted(cleaned: str, transcript: str) -> bool:
     pronouns in the output than the input means the text was restated from a
     different position — exactly the edit that must never ship.
     """
-    return (
-        len(_FIRST_PERSON.findall(cleaned)) > len(_FIRST_PERSON.findall(transcript))
-        or len(_SECOND_PERSON.findall(cleaned)) > len(_SECOND_PERSON.findall(transcript))
-    )
+    return len(_FIRST_PERSON.findall(cleaned)) > len(_FIRST_PERSON.findall(transcript)) or len(
+        _SECOND_PERSON.findall(cleaned)
+    ) > len(_SECOND_PERSON.findall(transcript))
 
 
 def _looks_like_commentary(cleaned: str, transcript: str) -> bool:
@@ -159,7 +156,7 @@ def clean(transcript: str, snippets: list[tuple[str, str]], cfg: dict) -> str:
     payload = {
         "model": model,
         "temperature": 0,  # deterministic; less prone to answering the transcript
-        "max_tokens": max(2000, len(transcript)),
+        "max_tokens": min(16000, max(2000, len(transcript))),
         "messages": [
             {"role": "system", "content": SYSTEM_PROMPT.format(snippet_table=table)},
             {"role": "user", "content": USER_TEMPLATE.format(transcript=transcript)},
@@ -172,10 +169,14 @@ def clean(transcript: str, snippets: list[tuple[str, str]], cfg: dict) -> str:
             headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
             json=payload,
             timeout=timeout,
+            follow_redirects=False,
         )
         if resp.status_code != 200:
             return apply_local(transcript, snippets)
-        text = (resp.json()["choices"][0]["message"]["content"] or "").strip()
+        choice = resp.json()["choices"][0]
+        if choice.get("finish_reason") != "stop":
+            return apply_local(transcript, snippets)
+        text = (choice["message"]["content"] or "").strip()
         if not text or _looks_like_commentary(text, transcript) or _pov_drifted(text, transcript):
             return apply_local(transcript, snippets)
         return text

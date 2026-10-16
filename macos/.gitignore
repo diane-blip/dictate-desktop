@@ -1,4 +1,7 @@
 .env
+.dictate.pid
+config.local.toml
+dictate.log.*
 .venv/
 __pycache__/
 *.pyc

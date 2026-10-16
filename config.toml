@@ -20,7 +20,7 @@ openai_model = "whisper-1"
 language = "en" # empty = automatic language detection
 
 [cleanup]
-enabled = true # optional; no Anthropic key means raw transcript + local snippets
+enabled = false # explicit opt-in; sends text and snippets to Anthropic
 model = "claude-haiku-5-5"
 timeout_seconds = 5.0
 

@@ -5,9 +5,9 @@ Dictate has no hosted account, subscription, telemetry endpoint or automatic upd
 | Data | Destination |
 |---|---|
 | Captured audio | Groq by default, or OpenAI if selected |
-| Transcript and the full snippet table | Anthropic when cleanup is enabled and a key is present |
+| Transcript and the full snippet table | Anthropic only after cleanup is explicitly enabled and a key is present |
 | Completed transcript | Foreground application, in-memory Recents, and local Markdown history by default |
-| Audio when transcription fails | Local `recordings/` folder |
+| Audio when transcription or capture fails | Local `recordings/` folder |
 | Keys | Your untracked `.env` or process environment |
 | Diagnostic events | Local rotating `dictate.log`, up to three approximately 1MB files |
 

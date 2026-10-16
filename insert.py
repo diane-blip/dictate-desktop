@@ -64,6 +64,31 @@ _user32.GetAsyncKeyState.restype = wintypes.SHORT
 _user32.GetForegroundWindow.restype = wintypes.HWND
 
 
+class _GUIINFO(ctypes.Structure):
+    _fields_ = [
+        ("cbSize", wintypes.DWORD),
+        ("flags", wintypes.DWORD),
+        ("hwndActive", wintypes.HWND),
+        ("hwndFocus", wintypes.HWND),
+        ("hwndCapture", wintypes.HWND),
+        ("hwndMenuOwner", wintypes.HWND),
+        ("hwndMoveSize", wintypes.HWND),
+        ("hwndCaret", wintypes.HWND),
+        ("rcCaret", wintypes.RECT),
+    ]
+
+
+_user32.GetGUIThreadInfo.argtypes = (wintypes.DWORD, ctypes.POINTER(_GUIINFO))
+_user32.GetGUIThreadInfo.restype = wintypes.BOOL
+
+
+def _menu_active() -> bool:
+    info = _GUIINFO(cbSize=ctypes.sizeof(_GUIINFO))
+    if not _user32.GetGUIThreadInfo(0, ctypes.byref(info)):
+        raise RuntimeError("Cannot verify input destination; recover this dictation from Recents.")
+    return bool(info.flags & 0x1C)  # menu, popup menu or system-menu mode
+
+
 def _wait_for_plain_input(target) -> None:
     """Wait until transcript characters cannot become modified shortcuts.
 
@@ -79,6 +104,8 @@ def _wait_for_plain_input(target) -> None:
         time.sleep(0.01)
     if _user32.GetForegroundWindow() != target:
         raise RuntimeError("Input focus changed; your dictation is saved in Recents.")
+    if _menu_active():
+        raise RuntimeError("An app menu is open; your dictation is saved in Recents.")
 
 
 def _utf16_units(text: str) -> list[int]:
