@@ -7,7 +7,7 @@ PYTHON="${PYTHON:-python3.12}"
 [[ -d .venv ]] || "$PYTHON" -m venv .venv
 .venv/bin/python -c 'import sys; assert sys.version_info[:2] == (3, 12), "Use Python 3.12"'
 .venv/bin/python -m pip install pip==26.2.1
-.venv/bin/python -m pip install --require-hashes -r requirements.lock
+.venv/bin/python -m pip install --only-binary=:all: --require-hashes -r requirements.lock
 .venv/bin/python -m pip check
 [[ -f .env ]] || cp .env.example .env
 [[ -f config.local.toml ]] || printf '# Local overrides of config.toml.

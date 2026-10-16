@@ -74,6 +74,6 @@ The [community port](macos/README.md) keeps Diane Green's Right Command + Right 
 
 ## Development
 
-[Architecture and contribution guide](CONTRIBUTING.md) · [Security](SECURITY.md) · [Verification and limits](docs/verification.md) · [Troubleshooting](docs/troubleshooting.md) · [Changelog](CHANGELOG.md)
+[Architecture and contribution guide](CONTRIBUTING.md) · [Design system](DESIGN.md) · [Security](SECURITY.md) · [Verification and limits](docs/verification.md) · [Troubleshooting](docs/troubleshooting.md) · [Changelog](CHANGELOG.md)
 
 Each release includes an exact-commit source ZIP and SHA-256 checksums. Windows and macOS software checks run through GitHub Actions. Hardware acceptance is recorded separately. Contributions should include focused regression tests and preserve platform-specific behavior and authorship.

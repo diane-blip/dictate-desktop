@@ -8,7 +8,7 @@ This public edition retains the contributed implementation with targeted mainten
 
 ## Install
 
-Use Python **3.12**. The locked dependency set targets macOS; Apple Silicon is the CI target. Intel hardware and current OS permissions need separate acceptance. Keep the project outside protected Documents/Desktop/Downloads folders if the app cannot read its files.
+Use **macOS 14 or later and Python 3.12**. The locked dependency wheels target macOS; Apple Silicon is the CI target. Intel hardware and current OS permissions need separate acceptance. Keep the project outside protected Documents/Desktop/Downloads folders if the app cannot read its files.
 
 Download and extract [Dictate-0.1.0-source.zip](https://github.com/diane-blip/dictate-desktop/releases/tag/v0.1.0), then open Terminal in its `macos` folder:
 

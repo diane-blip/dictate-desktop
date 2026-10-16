@@ -12,7 +12,9 @@ Local acceptance also opened the real microphone, captured one second of audio a
 
 ## macOS scope
 
-The contributed code is maintained and credited, with dedicated regression tests and a macOS CI job. Its tests use a dummy keyboard backend and mocked provider/clipboard operations. The process-control test uses actual disposable processes on the macOS runner. These checks do not constitute a real user's microphone, permissions, clipboard, or app-bundle acceptance.
+All 13 macOS regressions passed on an Apple Silicon GitHub runner, including actual disposable-process inspection and shutdown while an unrelated process remained alive. The locked installer, package consistency, dependency audit, shell syntax and generated app-bundle metadata also passed. The tests use a dummy keyboard backend and mocked provider/clipboard operations. These checks do not constitute a real user's microphone, permissions, clipboard, or app-bundle acceptance.
+
+The hosted [Checks workflow](https://github.com/diane-blip/dictate-desktop/actions/workflows/checks.yml) repeats platform software checks on each main push and pull request. Its Windows job intentionally skips the five interactive tests; the local desktop run above includes all five. Release assets come from the exact tested commit, with a separate SHA-256 file and an unauthenticated download check.
 
 ## Boundaries
 
