@@ -4,6 +4,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
@@ -170,14 +171,24 @@ class ControlTests(unittest.TestCase):
             python.parent.mkdir(parents=True)
             python.symlink_to(sys.executable)
             script = app / "dictate.py"
-            script.write_text("import time; time.sleep(120)")
+            ready = app / "ready"
+            script.write_text(
+                f"from pathlib import Path; import time; Path({str(ready)!r}).touch(); time.sleep(120)"
+            )
             owned = subprocess.Popen([str(python), str(script)])
             other = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(120)"])
             try:
                 pid = app / ".dictate.pid"
                 pid.write_text(str(owned.pid))
+                deadline = time.monotonic() + 5
+                while not ready.exists() and time.monotonic() < deadline:
+                    time.sleep(0.02)
+                self.assertTrue(ready.exists(), "Fixture process did not initialize")
                 with patch.object(control, "APP_DIR", app), patch.object(control, "PID_FILE", pid):
-                    self.assertTrue(control.owns_process(owned.pid))
+                    actual = subprocess.check_output(
+                        ["/bin/ps", "-p", str(owned.pid), "-o", "command="], text=True
+                    ).strip()
+                    self.assertTrue(control.owns_process(owned.pid), f"Process command: {actual!r}")
                     control.stop()
                 owned.wait(timeout=5)
                 self.assertIsNone(other.poll())
